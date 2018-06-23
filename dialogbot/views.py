@@ -1,10 +1,18 @@
+import json
+import logging
 from urllib.parse import urlencode
 
 import os
+
+import requests
+from django.http import HttpResponse, JsonResponse
+from django.views import View
 from django.views.generic import TemplateView
 from slackclient import SlackClient
 
-from dialogbot.mixins import SlackMixin
+from dialogbot.models import Team, Category
+from .mixins import SlackMixin
+from .dialogs import category_form
 
 
 class IndexView(SlackMixin, TemplateView):
@@ -42,6 +50,13 @@ class OauthCallbackView(SlackMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         response = self.exchange_code_for_token()
+        team, created = Team.objects.update_or_create(
+            team_id=response["team_id"], app_id=self.client_id, defaults={
+                "user_access_token": response["access_token"],
+                "bot_access_token": response["bot"]["bot_access_token"],
+                "team_name": response['team_name']
+            }
+        )
         return self.render_to_response(response)
 
     def exchange_code_for_token(self):
@@ -69,3 +84,69 @@ class OauthCallbackView(SlackMixin, TemplateView):
                 'error': "Error while installing rocket app in your workspace."
             }
         return response
+
+
+class CommandView(SlackMixin, View):
+    # for setting team object
+    set_team_obj = True
+
+    def post(self, request, *args, **kwargs):
+        command = self.data['command'].strip('/')
+        try:
+            method = getattr(self, f'{command}_command')
+        except AttributeError:
+            logging.info(f'Unhandled command {command}')
+            return HttpResponse(status=200)
+        return method()
+
+    def dialog_command(self):
+        resolution_times = [1, 4, 8, 12]
+        types = ['Interruption', 'Service Outage']
+        categories = Category.objects.values_list('title',flat=True)
+        payload = {
+            'token': self.team.bot_access_token,
+            'trigger_id': self.data['trigger_id'],
+            'dialog': json.dumps(category_form(resolution_times, types, categories))
+        }
+        response =  requests.post('https://slack.com/api/dialog.open', params=payload)
+        return HttpResponse(status=200)
+
+
+class InteractionView(SlackMixin, View):
+    # for setting team object
+    set_team_obj = True
+
+    def post(self, request, *args, **kwargs):
+        callback_id = self.data['callback_id']
+        try:
+            method = getattr(self, f'handle_{callback_id}')
+        except AttributeError:
+            logging.info(f'Unhandled interaction {callback_id}')
+            return HttpResponse(status=200)
+        return method()
+
+    def handle_category(self):
+        submission = self.data['submission']
+        message = {
+            'text': f"Category Submission Success",
+            'attachments': get_attachments(submission)
+        }
+        requests.post(self.data['response_url'], data=json.dumps(message))
+        return HttpResponse(status=200)
+
+
+def get_attachments(submission):
+    fields = [
+        {
+            "title": key.replace("_", " ").title(),
+            "value": value
+        }
+        for key, value in submission.items()
+    ]
+    attachment = {
+        "color": "#aaefab",
+        "mrkdwn_in": ['fields', 'text', 'pretext'],
+        "fields": fields,
+        'footer': 'Category',
+    }
+    return [attachment]
