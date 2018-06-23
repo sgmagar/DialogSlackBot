@@ -102,7 +102,7 @@ class CommandView(SlackMixin, View):
     def dialog_command(self):
         resolution_times = [1, 4, 8, 12]
         types = ['Interruption', 'Service Outage']
-        categories = Category.objects.values_list('title',flat=True)
+        categories = Category.objects.values_list('title',flat=True) or ['sample_category']
         payload = {
             'token': self.team.bot_access_token,
             'trigger_id': self.data['trigger_id'],
