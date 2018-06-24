@@ -50,6 +50,7 @@ class OauthCallbackView(SlackMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         response = self.exchange_code_for_token()
+        logging.info(response)
         team, created = Team.objects.update_or_create(
             team_id=response["team_id"], app_id=self.client_id, defaults={
                 "user_access_token": response["access_token"],
