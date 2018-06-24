@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class Creation(object):
+class Creation(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
 
@@ -9,7 +9,7 @@ class Creation(object):
         abstract = True
 
 
-class Team(Creation, models.Model):
+class Team(Creation):
     app_id = models.TextField()
     team_id = models.TextField(db_index=True)
     team_name = models.CharField(max_length=100)
@@ -23,7 +23,7 @@ class Team(Creation, models.Model):
         return self.team_name
 
 
-class Category(Creation, models.Model):
+class Category(Creation):
     title = models.CharField(max_length=100)
 
     class Meta:
