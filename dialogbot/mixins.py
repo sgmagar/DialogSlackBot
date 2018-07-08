@@ -23,6 +23,7 @@ class SlackMixin:
     def dispatch(self, request, *args, **kwargs):
         if self.set_team_obj:
             self.data = request.POST
+            logging.info(self.data)
             if not self.data.get("token"):
                 self.data = json.loads(self.data['payload'])
             if self.data['token'] != self.verification_token:
