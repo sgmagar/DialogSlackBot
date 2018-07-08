@@ -130,7 +130,7 @@ class InteractionView(SlackMixin, View):
         submission = self.data['submission']
         username = self.data['user']['name']
         message = {
-            'text': f"Category Submission Success by `username`",
+            'text': f"Category Submission Success by `{username}`",
             'attachments': get_attachments(submission)
         }
         requests.post(self.data['response_url'], data=json.dumps(message))
