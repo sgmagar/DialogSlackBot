@@ -18,6 +18,8 @@ class Team(Creation):
 
     class Meta:
         verbose_name = 'Team'
+        verbose_name_plural = "Teams"
+
 
     def __str__(self):
         return self.team_name
@@ -28,6 +30,8 @@ class Category(Creation):
 
     class Meta:
         verbose_name = 'Category'
+        verbose_name_plural = "Categories"
+
 
     def __str__(self):
         return self.title
